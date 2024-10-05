@@ -1,0 +1,180 @@
+# LIBRARIES
+```{r}
+library(scales)
+library(academictwitteR)
+library(tidyverse)
+library(lubridate)
+library(igraph)
+library(rgexf)
+library(igraph)
+```
+
+# LENDO ARQUIVOS
+```{r}
+#tweets_dissertation
+tweets <- read.csv("tweets_dissertation.csv")
+
+#todos os usuarios
+usuarios <- read.csv("usuarios_unicos_dissertation.csv")
+
+print(tweets)
+print(usuarios)
+```
+
+# REDES
+
+# BOTS
+## Criando igraph object
+
+## criando a rede do bolsonaro
+```{r}
+rede_bolsonaro <- tweets %>% 
+  filter(!is.na(reply_id)) %>% 
+  filter(mencao_lula_bolsonaro == "Bolsonaro" | mencao_lula_bolsonaro == "Both") %>% 
+  select(tweet_id, 
+         created_at,
+         author_id,
+         author_username,
+         author_botscore,
+         bot_or_not_author,
+         reply_id,
+         reply_username,
+         reply_botscore,
+         bot_or_not_reply,
+         text,
+         like_count,
+         quote_count,
+         retweet_count,
+         mencao_lula_bolsonaro)
+
+print(rede_bolsonaro)
+```
+
+Colocar o ID como no_username nos que o reply_username está vazio
+```{r}
+rede_bolsonaro
+```
+
+Selecionar apenas os que o id aparece no minimo 10 vezes na coluna author_id OR reply_id
+
+```{r}
+
+```
+
+
+```{r}
+# users colunas de atributos dos usuarios
+authors_rede_bolsonaro <- rede_bolsonaro %>% 
+  select(author_username,
+         bot_or_not_author) %>% 
+  rename(username = author_username,
+        bot = bot_or_not_author)
+
+replies_rede_bolsonaro <- rede_bolsonaro %>% 
+  select(reply_username,
+         bot_or_not_reply) %>% 
+  rename(username = reply_username,
+        bot = bot_or_not_reply)
+
+usuarios <- 
+  bind_rows(authors_rede_bolsonaro, replies_rede_bolsonaro)
+```
+
+```{r}
+usuarios <- usuarios %>% 
+  group_by(username) %>% 
+  unique() %>% 
+  ungroup()
+```
+
+```{r}
+write.csv(usuarios,
+          "results/bolsonaro_nodes.csv")
+
+write.csv(relations,
+          "results/bolsonaro_edges.csv")
+```
+
+                     
+```{r}
+# relations coluna from to
+relations <- rede_bolsonaro %>% 
+  select(author_username, reply_username) %>% 
+  rename(from = author_username,
+         to = reply_username)
+
+print(relations)
+```
+
+Creating graph
+```{r}
+bolsonaro_graph <- graph_from_data_frame(
+  relations, directed = TRUE, vertices = usuarios
+)
+```
+
+```{r}
+print(bolsonaro_graph,
+      e = TRUE,
+      v = TRUE)
+```
+
+```{r}
+write.csv(rede_bolsonaro,
+          "results/rede_bolsonaro.csv")
+```
+
+## Grafo:
+Colorir humanos e bots de cores diferentes
+
+## Plot do grafo
+```{r}
+write_graph(
+  "results/bolsonaro_graph.graphml"
+)
+```
+
+## Community detection
+```{r}
+cluster_edge_betweenness(
+  bolsonaro_graph,
+  weights = NULL,
+  directed = TRUE,
+  modularity = TRUE,
+  membership = TRUE
+)
+```
+
+
+## Betweeness Centrality 
+(o quanto um nó é importante como ponte entre outros nós)
+Adicionar a métrica pra cada uma coluna
+```{r}
+
+```
+
+Comparar a média dessa métrica entre humanos e bots
+```{r}
+
+```
+
+Selecionar os top 10 maiores bots nessa métrica
+```{r}
+
+```
+
+
+## Clustering Coefficient 
+(echo chambers na rede)
+Comparar a média dessa métrica entre humanos e bots
+```{r}
+
+```
+
+
+# Exportando arquivos results
+
+tabela como "results/bots_bolsonaro_cap01.csv"
+```{r}
+
+```

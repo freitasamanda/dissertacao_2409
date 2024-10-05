@@ -1,0 +1,24 @@
+# LIBRARIES
+```{r}
+library(scales)
+library(academictwitteR)
+library(tidyverse)
+library(lubridate)
+library(igraph)
+library(rgexf)
+library(igraph)
+```
+
+# LENDO ARQUIVOS
+```{r}
+#tweets_dissertation
+tweets <- read.csv("tweets_dissertation.csv")
+
+#todos os usuarios
+usuarios <- read.csv("usuarios_unicos_dissertation.csv")
+
+print(tweets)
+print(usuarios)
+```
+
+# SENTIMENTOS

@@ -1,0 +1,599 @@
+# LIBRARIES
+```{r}
+library(scales)
+library(academictwitteR)
+library(tidyverse)
+library(lubridate)
+library(igraph)
+library(rgexf)
+library(igraph)
+library(kableExtra)
+library(webshot2)
+library(webshot2)
+library(ggplot2)
+```
+
+# LENDO ARQUIVOS
+```{r}
+#tweets_dissertation
+tweets <- read.csv("tweets_dissertation.csv")
+
+#todos os usuarios
+usuarios <- read.csv("usuarios_unicos_dissertation.csv")
+
+print(tweets)
+print(usuarios)
+```
+
+```{r}
+# desligando a notação científica
+options(scipen=999)
+```
+
+# AVALIANDO O ALCANCE DOS BOTS 
+sempre é comparativamente aos humanos
+
+## Quantos por cento de humanos vs bots?
+```{r}
+tabela_01 <- usuarios %>% 
+  group_by(bot_or_not) %>%
+  tally() %>% 
+  mutate(Pct_por_bot= 100*(n/sum(n))) %>% 
+  ungroup() %>% 
+  add_row(bot_or_not = "Total", n = sum(.$n), Pct_por_bot = sum(.$Pct_por_bot))
+
+#write.csv(tabela_01, "images/artigo_discente_bots/tabela_01_humanos_bots.csv")
+
+tabela_01 %>% 
+  kable(caption = "Tabela 1  - Humanos e Bots na rede",
+        digits = 2,
+        col.names = c("Categoria", "Usuários", "%"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+### GRAFICO
+```{r}
+tabela_01_grafico <- usuarios %>% 
+  ggplot() +
+  geom_bar(aes(x = bot_or_not, fill = bot_or_not)) +
+  labs(title = "Humanos e Bots na Rede",
+       y = "categoria",
+       x = "volume de tweets",
+       fill = "categoria")
+
+print(tabela_01_grafico)
+```
+
+```{r}
+#SALVANDO
+ggsave(plot = tabela_01_grafico,
+       filename = "images/artigo_discente_bots/grafico_tabela_01_humanos_bots.png")
+```
+
+## Quantos por cento de bots mencionando Lula vs Bolsonaro?
+```{r}
+# bots mencionando Lula
+tabela_02 <- tweets %>% 
+  filter(mencao_lula_bolsonaro == "Lula" | mencao_lula_bolsonaro == "Both") %>% 
+  group_by(bot_or_not_author) %>% 
+  tally() %>% 
+  mutate(Pct_por_bot= 100*(n/sum(n))) %>% 
+  ungroup() %>% 
+  add_row(bot_or_not_author = "Total", n = sum(.$n), Pct_por_bot = sum(.$Pct_por_bot))
+
+#write.csv(tabela_02, "images/artigo_discente_bots/tabela_02_bots_mencao_lula.csv")
+  
+tabela_02 %>% 
+  kable(caption = "Tabela 2  - Menções a Lula",
+        digits = 2,
+        col.names = c("Categoria", "Usuários", "%"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+
+### GRAFICO
+```{r}
+tabela_02_grafico <- tweets %>% 
+  filter(mencao_lula_bolsonaro == "Lula" | mencao_lula_bolsonaro == "Both") %>% 
+  ggplot() +
+  geom_bar(aes(x = bot_or_not_author, fill = bot_or_not_author)) +
+  labs(title = "Humanos e Bots na Rede - Lula",
+       y = "categoria",
+       x = "volume de tweets",
+       fill = "categoria")
+
+print(tabela_02_grafico)
+```
+
+```{r}
+#SALVANDO
+ggsave(plot = tabela_02_grafico,
+       filename = "images/artigo_discente_bots/grafico_tabela_02_bots_mencao_lula.png")
+```
+```{r}
+# bots mencionando bolsonaro
+tabela_03 <- tweets %>% 
+  filter(mencao_lula_bolsonaro == "Bolsonaro" | mencao_lula_bolsonaro == "Both") %>% 
+  group_by(bot_or_not_author) %>% 
+  tally() %>% 
+  mutate(Pct_por_bot= 100*(n/sum(n))) %>%
+  ungroup() %>% 
+  add_row(bot_or_not_author = "Total", n = sum(.$n), Pct_por_bot = sum(.$Pct_por_bot))
+
+#write.csv(tabela_03, "images/artigo_discente_bots/tabela_03_bots_mencao_bolsonaro.csv")
+
+tabela_03 %>% 
+  kable(caption = "Tabela 3  - Menções a Bolsonaro",
+        digits = 2,
+        col.names = c("Categoria", "Usuários", "%"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+```{r}
+tabela_03_grafico <- tweets %>% 
+  filter(mencao_lula_bolsonaro == "Bolsonaro" | mencao_lula_bolsonaro == "Both") %>% 
+  ggplot() +
+  geom_bar(aes(x = bot_or_not_author, fill = bot_or_not_author)) +
+  labs(title = "Humanos e Bots na Rede - Bolsonaro",
+       y = "categoria",
+       x = "volume de tweets",
+       fill = "categoria")
+
+print(tabela_03_grafico)
+```
+
+```{r}
+#SALVANDO
+ggsave(plot = tabela_03_grafico,
+       filename = "images/artigo_discente_bots/grafico_tabela_03_bots_mencao_bolsonaro.png")
+```
+
+Quantos replies (rede de interações)?
+```{r}
+total_tweets <- dim(tweets)
+total_tweets <- total_tweets[1]
+
+total_replies <- tweets %>% 
+  filter(complete.cases(reply_username)) %>% 
+  dim()
+total_replies <- total_replies[1]
+
+percent_replies <- 100*(total_replies/total_tweets)
+
+tabela_04 <- tibble(Column = c("Total de tweets", "Total de respostas", "Porcentagem de respostas"), 
+       n = c(total_tweets, total_replies, percent_replies))
+
+#write.csv(tabela_04, "images/artigo_discente_bots/tabela_04_rede_de_respostas.csv")
+
+tabela_04  %>% 
+   kable(caption = "Tabela 4  - Rede de respostas",
+        digits = 2,
+        col.names = c("Totais", "n"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+
+## Volume de tweets de cada categoria AUTORES
+Criando dataframe de autores
+```{r}
+#criando dataframe de volume de tweets dos autores
+authors_tweet_count <- tweets %>% 
+  select(author_username, bot_or_not_author) %>% 
+  group_by(author_username) %>% 
+  mutate(n= n()) %>% 
+  distinct(author_username, .keep_all=TRUE) %>% 
+  ungroup()
+```
+
+criando tabela
+```{r}
+tabela_05 <- authors_tweet_count %>% 
+  group_by(bot_or_not_author) %>% 
+  mutate(sum = sum(n)) %>% 
+  select(-author_username, -n) %>% 
+  distinct(bot_or_not_author, .keep_all = TRUE) %>% 
+  ungroup() %>% 
+  mutate(percent = 100*(sum/sum(sum))) %>% 
+  add_row(bot_or_not_author = "Total", sum = sum(.$sum), percent = sum(.$percent))
+
+#write.csv(tabela_05, "images/artigo_discente_bots/tabela_05_volume_tweets_autores.csv")
+
+tabela_05 %>% 
+  kable(caption = "Tabela 5  - Volume total de tweets AUTORES",
+        digits = 2,
+        col.names = c("Categoria", "Tweets", "%"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+
+## Média, sd, max de tweets humanos vs bots AUTORES
+```{r}
+tabela_06 <- authors_tweet_count %>% 
+  group_by(bot_or_not_author) %>% 
+  summarize(media = mean(n),
+            sd = sd(n),
+            max = max(n)) %>% 
+  ungroup()
+
+#write.csv(tabela_06, "images/artigo_discente_bots/tabela_06_metricas_volume_autores.csv")
+
+tabela_06 %>% 
+  filter(bot_or_not_author != "undecided") %>% 
+   kable(caption = "Tabela 6  - Métricas do volume de tweets AUTORES",
+        digits = 2,
+        col.names = c("Categoria", "Média", "Desvio Padrão", "Max"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+
+## GRAFICO
+
+## Volume de tweets de cada categoria REPLIES
+criando dataframe de replies
+```{r}
+#criando dataframe de volume de tweets dos REPLIES
+replies_tweet_count <- tweets %>% 
+  filter(complete.cases(reply_username)) %>% 
+  select(reply_username, bot_or_not_reply) %>% 
+  group_by(reply_username) %>% 
+  mutate(n= n()) %>% 
+  distinct(reply_username, .keep_all=TRUE) %>% 
+  ungroup()
+```
+
+Criando a tabela
+```{r}
+tabela_07 <- replies_tweet_count %>% 
+  group_by(bot_or_not_reply) %>% 
+  mutate(sum = sum(n)) %>% 
+  select(-
+reply_username, -n) %>% 
+  distinct(bot_or_not_reply, .keep_all = TRUE) %>% 
+  ungroup() %>% 
+  mutate(percent = 100*(sum/sum(sum))) %>% 
+  add_row(bot_or_not_reply = "Total", sum = sum(.$sum), percent = sum(.$percent))
+
+#write.csv(tabela_07, "images/artigo_discente_bots/tabela_07_volume_tweets_replies.csv")
+
+tabela_07 %>% 
+  kable(caption = "Tabela 7  - Volume total de tweets REPLIES",
+        digits = 2,
+        col.names = c("Categoria", "Tweets", "%"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+PARA NAO ESCQUECER A ANALISE - Menos de 1% dos tweets respondidos são para bots, as pessoas não interagem com eles
+
+
+## Média, sd, max de tweets humanos vs bots REPLIES
+```{r}
+tabela_08 <- replies_tweet_count %>% 
+  group_by(bot_or_not_reply) %>% 
+  summarize(media = mean(n),
+            sd = sd(n),
+            max = max(n)) %>% 
+  ungroup() %>% 
+  filter(bot_or_not_reply != "undecided")
+
+#write.csv(tabela_08, "images/artigo_discente_bots/tabela_08_metricas_volumes_replies.csv")
+
+tabela_08 %>% 
+   kable(caption = "Tabela 8  - Métricas do volume de tweets REPLIES",
+        digits = 2,
+        col.names = c("Categoria", "Média", "Desvio Padrão", "Max"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+Lembrando que aqui sao respondidos
+a média de tweets respondidos de humanos é maior e mais variável
+O máximo de tweets de humanos respondidos é muitas vezes maior que o de bots respondidos, isto é, o humano mais respondido recebeu 36.445 respostas, enquanto o bot mais respondido recebey 139 respostas
+
+ISSO É RELEVANTE, QUEM É ESSE BOT QUE TODO MUNDO RESPONDE TANTO?
+```{r}
+tweets %>% 
+  filter(reply_username == "Conservadora191")
+```
+
+## Métricas (like, retweet, quote) humanos vs bots
+
+like, retweet, quote AUTORES
+```{r}
+tabela09 <- tweets %>% 
+  select(author_username, bot_or_not_author, like_count, quote_count, retweet_count) %>% 
+  filter(bot_or_not_author != "undecided") %>% 
+  group_by(bot_or_not_author) %>% 
+  summarize(like_mean = mean(like_count),
+              like_sd = sd(like_count),
+              like_max = max(like_count), 
+              retweet_mean = mean(retweet_count),
+              retweet_sd = sd(retweet_count),
+              retweet_max = max(retweet_count), 
+            quote_mean = mean(quote_count,),
+              quote_sd = sd(quote_count),
+              quote_max = max(quote_count))
+
+#write.csv(tabela09, "images/artigo_discente_bots/tabela_09_metricas_twitter_autores.csv")
+
+tabela09  %>% 
+kable(caption = "Tabela 9  - Métricas dos tweets AUTORES",
+        digits = 2,
+        col.names = c("Categoria", 
+                      "Média Likes", 
+                      "Desvio Padrão Likes", 
+                      "Max Likes",
+                      "Média Retweets", 
+                      "Desvio Padrão Retweets", 
+                      "Max Retweets",
+                      "Média Quotes", 
+                      "Desvio Padrão Quotes", 
+                      "Max Quotes"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+
+## Volume de tweets humanos vs bots temporalmente por dia
+
+eixo y volume de tweets
+eixo x dias temporal resolution = 1 hour
+Uma linha é os "human"
+Outra é os bot
+
+```{r}
+time_series01 <- tweets %>% 
+  select(tweet_id, created_at, bot_or_not_author)
+```
+```{r}
+time_series_01 <- time_series01 %>% 
+  filter(bot_or_not_author != "undecided") %>% 
+  ggplot() +
+  geom_density(aes(x = created_at, colour = bot_or_not_author)) +
+  ggtitle("Série histórica do volume de tweets") +
+  labs(title = "Série histórica: volume de tweets",
+       x = "time resolution = days",
+       y = "Volume de tweets",
+       colour = "Bot ou Humano")
+
+print(time_series_01)
+```
+```{r}
+ggsave(plot = time_series_01,
+       filename = "images/artigo_discente_bots/grafico01_volume_tweets.png")
+```
+
+## Volume de tweets humanos vs bots temporalmente por dia LULA
+
+```{r}
+#selecionando só os do Lula
+time_series02 <- tweets %>% 
+  filter(mencao_lula_bolsonaro == "Lula" | mencao_lula_bolsonaro == "Both" ) %>% 
+  select(tweet_id, created_at, bot_or_not_author)
+  
+print(time_series02)
+```
+
+```{r}
+time_series_02 <- time_series02 %>% 
+  filter(bot_or_not_author != "undecided") %>% 
+  ggplot() +
+  geom_density(aes(x = created_at, colour = bot_or_not_author)) +
+  labs(title = "Série histórica: volume de tweets - LULA",
+       x = "time resolution = days",
+       y = "Volume de tweets",
+       colour = "Bot ou Humano")
+
+print(time_series_02)
+```
+
+```{r}
+ggsave(plot = time_series_02,
+       filename = "images/artigo_discente_bots/grafico02_volume_tweets_lula.png")
+```
+
+## Volume de tweets humanos vs bots temporalmente por dia BOLSONARO
+```{r}
+#selecionando só os do Bolsonaro
+time_series03 <- tweets %>% 
+  filter(mencao_lula_bolsonaro == "Bolsonaro" | mencao_lula_bolsonaro == "Both" ) %>% 
+  select(tweet_id, created_at, bot_or_not_author)
+  
+print(time_series03)
+```
+
+```{r}
+#plot
+time_series_03 <- time_series03 %>% 
+  filter(bot_or_not_author != "undecided") %>% 
+  ggplot() +
+  geom_density(aes(x = created_at, colour = bot_or_not_author)) +
+  labs(title = "Série histórica: volume de tweets - BOLSONARO",
+       x = "time resolution = days",
+       y = "Volume de tweets",
+       colour = "Bot ou Humano")
+
+print(time_series_03)
+```
+
+```{r}
+ggsave(plot = time_series_03,
+       filename = "images/artigo_discente_bots/grafico03_volume_tweets_bolsonaro.png")
+```
+
+## COMPARANDO O VOLUME DOS DOIS
+```{r}
+#selecionando Lula ou Bolsonaro
+time_series04 <- tweets %>% 
+  filter(mencao_lula_bolsonaro == "Lula" | mencao_lula_bolsonaro == "Bolsonaro") %>% 
+  select(tweet_id, created_at, mencao_lula_bolsonaro)
+  
+print(time_series04)
+```
+
+```{r}
+#plot
+time_series_04 <- time_series04 %>% 
+  ggplot() +
+  geom_density(aes(x = created_at, colour = mencao_lula_bolsonaro)) +
+  labs(title = "Série histórica volume tweets menções",
+       x = "time resolution = days",
+       y = "Volume de tweets",
+       colour = "Menção")
+
+print(time_series_04)
+```
+```{r}
+ggsave(plot = time_series_04,
+       filename = "images/artigo_discente_bots/grafico04_volume_tweets_mencoes.png")
+```
+
+# AVALIANDO A RELEVANCIA DOS BOTS
+
+Quantos replies (rede de interações)?
+```{r}
+total_tweets <- dim(tweets)
+total_tweets <- total_tweets[1]
+
+total_replies <- tweets %>% 
+  filter(complete.cases(reply_id)) %>% 
+  dim()
+total_replies <- total_replies[1]
+
+percent_replies <- 100*(total_replies/total_tweets)
+
+tabela_04 <- tibble(Column = c("Total de tweets", "Total de respostas", "Porcentagem de respostas"), 
+       n = c(total_tweets, total_replies, percent_replies))
+
+#write.csv(tabela_04, "images/artigo_discente_bots/tabela_04_rede_de_respostas.csv")
+
+tabela_04  %>% 
+   kable(caption = "Tabela 4  - Rede de respostas",
+        digits = 2,
+        col.names = c("Totais", "n"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+
+Quantos desses foram sobre Bolsonaro
+
+```{r}
+tweets %>% 
+  filter(!is.na(reply_id)) %>% 
+  group_by(mencao_bolsonaro) %>% 
+  tally() %>% 
+  mutate(percent = 100*(n/sum(n))) %>% 
+  add_row(mencao_bolsonaro = 0, n = sum(.$n), percent = sum(.$percent)) %>% 
+  kable(caption = "Menções a Bolsonaro na rede de respostas",
+        digits = 2,
+        col.names = c("Mençao Bolsonaro = 1", "Tweets", "%"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+
+
+## Grafo do Bolsonaro
+
+só os repliy_id nao NA
+só os menção Bolsonaro ou Both
+
+```{r}
+rede_bolsonaro <- tweets %>% 
+  filter(!is.na(reply_id)) %>% 
+  filter(mencao_lula_bolsonaro == "Bolsonaro" | mencao_lula_bolsonaro == "Both") %>% 
+  select(tweet_id, 
+         created_at,
+         author_id,
+         author_username,
+         author_botscore,
+         bot_or_not_author,
+         reply_id,
+         reply_username,
+         reply_botscore,
+         bot_or_not_reply,
+         text,
+         like_count,
+         quote_count,
+         retweet_count,
+         mencao_lula_bolsonaro)
+
+print(rede_bolsonaro)
+```
+
+Tabela quantos tweets quantos de humanos quantos de bots AUTORES
+```{r}
+#criando dataframe de volume de tweets dos autores
+authors_tweet_count <- rede_bolsonaro %>% 
+  select(author_username, bot_or_not_author) %>% 
+  group_by(author_username) %>% 
+  mutate(n= n()) %>% 
+  distinct(author_username, .keep_all=TRUE) %>% 
+  ungroup()
+```
+TOP 10 bots que mais publicaram
+```{r}
+authors_tweet_count %>% 
+  filter(bot_or_not_author == "bot") %>% 
+  arrange(-n) %>%
+  select(-bot_or_not_author) %>% 
+  kable(caption = "Top 10 bots que mais publicaram",
+        digits = 2,
+        col.names = c("Usuarios", "Tweets"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+
+Tabela do volume total
+```{r}
+authors_tweet_count %>% 
+  group_by(bot_or_not_author) %>% 
+  mutate(sum = sum(n)) %>% 
+  select(-author_username, -n) %>% 
+  distinct(bot_or_not_author, .keep_all = TRUE) %>% 
+  ungroup() %>% 
+  mutate(percent = 100*(sum/sum(sum))) %>% 
+  add_row(bot_or_not_author = "Total", sum = sum(.$sum), percent = sum(.$percent)) %>% 
+  kable(caption = "Volume total de tweets sobre Bolsonaro AUTORES",
+        digits = 2,
+        col.names = c("Categoria", "Tweets", "%"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+O mesmo com os replies
+
+```{r}
+#criando dataframe de volume de tweets dos REPLIES
+replies_tweet_count <- rede_bolsonaro %>% 
+  filter(complete.cases(reply_id)) %>% 
+  select(reply_username, bot_or_not_reply) %>% 
+  group_by(reply_username) %>% 
+  mutate(n= n()) %>% 
+  distinct(reply_username, .keep_all=TRUE) %>% 
+  ungroup()
+```
+```{r}
+replies_tweet_count %>% 
+  filter(bot_or_not_reply == "bot") %>% 
+  arrange(-n) %>%
+  select(-bot_or_not_reply) %>% 
+  kable(caption = "Top 10 bots mais respondidos",
+        digits = 2,
+        col.names = c("Usuarios", "Respostas"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+
+```{r}
+replies_tweet_count %>% 
+  group_by(bot_or_not_reply) %>% 
+  mutate(sum = sum(n)) %>% 
+  select(-
+reply_username, -n) %>% 
+  distinct(bot_or_not_reply, .keep_all = TRUE) %>% 
+  ungroup() %>% 
+  mutate(percent = 100*(sum/sum(sum))) %>% 
+  add_row(bot_or_not_reply = "Total", sum = sum(.$sum), percent = sum(.$percent)) %>% 
+  kable(caption = "olume total de tweets sobre Bolsonaro REPLIES",
+        digits = 2,
+        col.names = c("Categoria", "Tweets", "%"),
+        format.args=list(big.mark=".", decimal.mark=",")) %>% 
+  kable_styling()
+```
+

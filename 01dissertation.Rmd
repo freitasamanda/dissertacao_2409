@@ -1,0 +1,79 @@
+# LIBRARIES
+```{r}
+library(scales)
+library(academictwitteR)
+library(tidyverse)
+library(lubridate)
+library(igraph)
+library(rgexf)
+library(igraph)
+```
+
+# LENDO ARQUIVOS
+```{r}
+#tweets_dissertation
+tweets <- read.csv("tweets_dissertation.csv")
+
+#todos os usuarios
+usuarios <- read.csv("usuarios_unicos_dissertation.csv")
+
+print(tweets)
+print(usuarios)
+```
+
+# DESLIGANDO A NOTAÇÃO CIENTÍFICA
+```{r}
+# desligando a notação científica
+options(scipen=999)
+```
+
+# CONVERTENDO CREATED_AT PARA DATA
+```{r}
+#converting created_at to time
+tweets <- tweets %>% 
+  mutate(created_at = as_datetime(created_at, tz = "UTC"))
+```
+
+# COLUNA DE VOLUME DE TWEET POR AUTHOR
+
+# COLUNA DE VOLUME DE TWEET POR REPLY
+
+# MISSING REPLY USERNAMES
+```{r}
+missing_ids <- usuarios %>% 
+  filter(is.na(username)) %>% 
+  select(id) %>% 
+  as.vector()
+```
+
+# Authentication:
+
+```{r}
+bearer_token <- "AAAAAAAAAAAAAAAAAAAAAClyggEAAAAAELJtZMD80ip9VtgQvZA0zFZikJo%3DFCc4eIpA2z0w1ET8eVXMz7UGRfy3sPPUmMOP0UEsEplkB0Cg9q"
+
+users <- missing_ids
+
+missing_profiles <- get_user_profile(users, bearer_token)
+```
+
+# Arrumando os principais reply_username
+
+```{r}
+tweets <- tweets %>% 
+  mutate(reply_username = case_when(reply_id == 18865285 ~ "MaraLuquet",
+                                    TRUE ~ reply_username))
+```
+
+```{r}
+rede_bolsonaro %>% 
+  filter(is.na(reply_username)) %>% 
+  arrange(-reply_id)
+```
+
+@MaraLuquet
+User Id: 18865285
+Bot Score: 0.4/5
+
+# Salvando isso no arquivo tweets_dissertation_v2
+
+
